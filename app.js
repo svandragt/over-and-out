@@ -75,7 +75,7 @@ function bindPtt() {
   });
 }
 
-function wireCall(call) {
+function wireCall(call, onEnd) {
   call.on('stream', (remote) => {
     const audio = $('remote');
     audio.srcObject = remote;
@@ -86,11 +86,14 @@ function wireCall(call) {
     pc.addEventListener('connectionstatechange', () => {
       const s = pc.connectionState;
       if (s === 'connected') setStatus('Connected');
-      else if (s === 'disconnected') setStatus('Signal lost…');
-      else if (s === 'failed' || s === 'closed') { setStatus('Disconnected'); call.close(); }
+      else if (s === 'disconnected') {
+        setStatus('Signal lost…');
+        // a refreshed tab shows as 'disconnected' long before 'failed', so don't wait for that
+        setTimeout(() => pc.connectionState === 'connected' || call.close(), 5000);
+      } else if (s === 'failed' || s === 'closed') call.close();
     });
   });
-  call.on('close', () => setStatus('Disconnected'));
+  call.on('close', () => { setStatus('Disconnected'); onEnd?.(); });
 }
 
 function showShare(id) {
@@ -107,26 +110,64 @@ function showShare(id) {
   });
 }
 
-function startPeer() {
-  const guestOf = location.hash.slice(1);
-  const peer = new Peer();
-  let current = null;
-  addEventListener('pagehide', () => peer.destroy());
-  peer.on('error', (err) => {
-    setStatus(err.type === 'peer-unavailable'
-      ? 'That channel is off the air'
-      : `Disconnected (${err.type})`);
-  });
-  if (guestOf) {
-    peer.on('open', () => {
-      setStatus('Calling…');
-      current = peer.call(guestOf, dest.stream);
-      wireCall(current);
-    });
-    return;
+const CHANNEL_TTL = 2 * 60 * 1000;
+
+function loadChannel() {
+  try {
+    const { id, t } = JSON.parse(localStorage.getItem('channel'));
+    return Date.now() - t < CHANNEL_TTL ? id : undefined;
+  } catch {
+    return undefined;
   }
-  peer.on('open', (id) => { showShare(id); setStatus('Waiting for someone to join'); });
-  peer.on('call', (call) => {
+}
+
+function saveChannel(id) {
+  try { localStorage.setItem('channel', JSON.stringify({ id, t: Date.now() })); } catch {}
+}
+
+let peer;
+
+// a sleeping tab loses the broker socket; reconnecting keeps the same ID so the link still works
+function keepRegistered(p) {
+  p.on('disconnected', () => setTimeout(() => p.destroyed || p.reconnect(), 2000));
+}
+
+function guest(hostId) {
+  peer = new Peer();
+  keepRegistered(peer);
+  let timer;
+  // keep redialling so the call resumes when a refreshed host comes back on its saved ID
+  const redial = () => { clearTimeout(timer); timer = setTimeout(dial, 3000); };
+  const dial = () => {
+    setStatus('Calling…');
+    const call = peer.call(hostId, dest.stream);
+    if (call) wireCall(call, redial); else redial();
+  };
+  peer.once('open', dial);
+  peer.on('error', (err) => {
+    if (err.type === 'peer-unavailable') { setStatus('That channel is off the air, retrying…'); redial(); }
+    else setStatus(`Disconnected (${err.type})`);
+  });
+}
+
+function host(id = loadChannel(), tries = 0) {
+  const p = peer = new Peer(id);
+  keepRegistered(p);
+  let current = null;
+  p.on('error', (err) => {
+    if (err.type !== 'unavailable-id') return setStatus(`Disconnected (${err.type})`);
+    // the broker holds a dropped ID for a few seconds, so retry before taking a new one
+    setStatus('Reclaiming your channel…');
+    p.destroy();
+    setTimeout(() => host(tries < 5 ? id : undefined, tries + 1), 2000);
+  });
+  p.once('open', (id) => {
+    saveChannel(id);
+    setInterval(() => saveChannel(id), 15_000);
+    showShare(id);
+    setStatus('Waiting for someone to join');
+  });
+  p.on('call', (call) => {
     // newest caller wins: a reloading guest rejoins before the old link is seen as dead
     // shortcut: anyone with the link can bump the other guest, fine for a two-person toy
     current?.close();
@@ -135,6 +176,12 @@ function startPeer() {
     call.answer(dest.stream);
     wireCall(call);
   });
+}
+
+function startPeer() {
+  const hostId = location.hash.slice(1);
+  if (hostId) guest(hostId); else host();
+  addEventListener('pagehide', () => peer.destroy());
 }
 
 const ua = navigator.userAgent;
