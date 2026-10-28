@@ -120,8 +120,38 @@ function startPeer() {
   });
 }
 
+const ua = navigator.userAgent;
+const os = /iPhone|iPad|iPod/.test(ua) ? 'ios'
+  : /Android/.test(ua) ? 'android'
+  : /Mac/.test(ua) ? 'mac'
+  : /Windows/.test(ua) ? 'windows'
+  : 'linux';
+
+const siteFix = {
+  ios: 'In Safari, tap aA in the address bar, then Website Settings, and set Microphone to Allow.',
+  android: 'Tap the icon left of the address, open Permissions, and allow Microphone.',
+}[os] ?? 'Click the icon left of the address bar, set Microphone to Allow, then reload.';
+
+const systemFix = {
+  ios: 'Also check Settings → your browser → Microphone.',
+  android: 'Also check Settings → Apps → your browser → Permissions → Microphone.',
+  mac: 'Also check System Settings → Privacy & Security → Microphone, turn on your browser, then restart it.',
+  windows: 'Also check Settings → Privacy & security → Microphone, and allow your browser.',
+  linux: 'Also check Settings → Privacy → Microphone. A Flatpak or Snap browser needs microphone access too (Flatseal, or snap connect <browser>:audio-record).',
+}[os];
+
+function micHelp(err) {
+  switch (err.name) {
+    case 'NotAllowedError': return `${siteFix} ${systemFix}`;
+    case 'NotFoundError': return 'No microphone was found. Plug one in or turn it on, then try again.';
+    case 'NotReadableError': return `Another app may be using the microphone, so close calls or recorders and try again. ${systemFix}`;
+    default: return window.isSecureContext ? err.message : 'Open the https:// address of this page.';
+  }
+}
+
 $('tune').addEventListener('click', async () => {
   $('tune').hidden = true;
+  $('help').hidden = true;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
@@ -130,6 +160,8 @@ $('tune').addEventListener('click', async () => {
     await ctx.resume();
   } catch (err) {
     setStatus(`Microphone unavailable (${err.name})`);
+    $('help').textContent = micHelp(err);
+    $('help').hidden = false;
     $('tune').hidden = false;
     return;
   }
