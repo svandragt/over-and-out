@@ -33,6 +33,7 @@ body {
   padding: 16px;
 }
 .version { margin: 12px 0 0; font-size: 0.75rem; color: var(--muted); font-family: ui-monospace, monospace; }
+.version a { color: inherit; }
 .radio {
   width: 100%;
   max-width: 420px;
