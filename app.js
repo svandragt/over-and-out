@@ -127,9 +127,11 @@ function startPeer() {
   }
   peer.on('open', (id) => { showShare(id); setStatus('Waiting for someone to join'); });
   peer.on('call', (call) => {
-    if (current) { call.close(); return; }
+    // newest caller wins: a reloading guest rejoins before the old link is seen as dead
+    // shortcut: anyone with the link can bump the other guest, fine for a two-person toy
+    current?.close();
     current = call;
-    call.on('close', () => { current = null; });
+    call.on('close', () => { if (current === call) current = null; });
     call.answer(dest.stream);
     wireCall(call);
   });
