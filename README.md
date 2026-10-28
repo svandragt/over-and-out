@@ -40,3 +40,7 @@ To change the sound, edit `app.js`. The value `k` sets how much distortion the v
 - The site connects people through the free public PeerJS service, which has no uptime guarantee. If that service is down, nobody can connect.
 - Some mobile networks and office networks block direct connections between browsers. People on those networks cannot connect.
 - Both people must keep the page open. A phone that puts the tab to sleep can drop the call.
+
+## Licence
+
+Over & Out is free software under the GNU General Public License v3.0. See [LICENSE](LICENSE).
