@@ -189,6 +189,11 @@ function startPeer() {
   addEventListener('pagehide', () => peer.destroy());
 }
 
+// GitHub Pages runs Jekyll, which fills in the commit; a local server serves the raw template
+fetch('version.txt', { cache: 'no-store' }).then((r) => r.text()).then((t) => {
+  $('version').textContent = t.includes('{{') ? 'dev' : `v ${t.trim().slice(0, 7)}`;
+}).catch(() => {});
+
 const ua = navigator.userAgent;
 const os = /iPhone|iPad|iPod/.test(ua) ? 'ios'
   : /Android/.test(ua) ? 'android'

@@ -8,6 +8,7 @@
   --ptt: #c0392b;
   --ptt-glow: #ff6a4d;
   --focus: #1a6fe0;
+  --muted: #5e584a;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -16,6 +17,7 @@
     --body-edge: #0f160e;
     --screen: #0b120b;
     --focus: #7ab4ff;
+    --muted: #8c907f;
   }
 }
 * { box-sizing: border-box; }
@@ -27,8 +29,10 @@ body {
   min-height: 100vh;
   display: grid;
   place-items: center;
+  align-content: center;
   padding: 16px;
 }
+.version { margin: 12px 0 0; font-size: 0.75rem; color: var(--muted); font-family: ui-monospace, monospace; }
 .radio {
   width: 100%;
   max-width: 420px;
