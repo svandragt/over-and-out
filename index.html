@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Over &amp; Out</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="radio">
+    <h1>Over &amp; Out</h1>
+    <p id="status" aria-live="polite">Ready</p>
+    <button id="tune" type="button" class="tune">Tap to tune in</button>
+    <div id="share" class="share" hidden>
+      <label for="link">Send this link to your contact</label>
+      <div class="row">
+        <input id="link" type="text" readonly>
+        <button id="copy" type="button">Copy</button>
+      </div>
+    </div>
+    <button id="ptt" type="button" class="ptt" aria-pressed="false" hidden>Hold to talk</button>
+    <p class="hint" id="hint" hidden>Hold the button or the Space bar to talk.</p>
+    <audio id="remote" autoplay></audio>
+  </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
