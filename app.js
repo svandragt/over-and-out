@@ -16,7 +16,13 @@ function buildGraph(stream) {
   shaper = new WaveShaperNode(ctx, { curve: crushCurve(4) });
   pttGain = new GainNode(ctx, { gain: 0 });
   dest = ctx.createMediaStreamDestination();
-  mic.connect(high).connect(low).connect(drive).connect(shaper).connect(pttGain).connect(dest);
+  // tanh soft clip; raise k for more grit
+  const k = 3;
+  const fuzz = new WaveShaperNode(ctx, {
+    curve: Float32Array.from({ length: 1024 }, (_, i) => Math.tanh(k * (i / 511.5 - 1)) / Math.tanh(k)),
+    oversample: '2x',
+  });
+  mic.connect(high).connect(low).connect(drive).connect(fuzz).connect(shaper).connect(pttGain).connect(dest);
 
   noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
   const data = noiseBuffer.getChannelData(0);
