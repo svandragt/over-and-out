@@ -1,3 +1,4 @@
 ---
+# GitHub Pages runs Jekyll, which fills in the deployed commit; index.html reads it
 ---
 {{ site.github.build_revision }}

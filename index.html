@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Over &amp; Out</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" id="css">
 </head>
 <body>
   <main class="radio">
@@ -26,6 +26,13 @@
   </main>
   <p class="version" id="version"></p>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
-  <script type="module" src="app.js"></script>
+  <script type="module">
+    // Pages caches files for 10 minutes; URLs stamped with the commit make each deploy load fresh
+    const t = await fetch('version.txt', { cache: 'no-store' }).then((r) => r.text()).catch(() => '{{');
+    const v = t.includes('{{') ? 'dev' : t.trim().slice(0, 7);
+    document.getElementById('version').textContent = v === 'dev' ? 'dev' : `v ${v}`;
+    document.getElementById('css').href = `style.css?v=${v}`;
+    await import(`./app.js?v=${v}`);
+  </script>
 </body>
 </html>
