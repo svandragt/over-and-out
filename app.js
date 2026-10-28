@@ -81,6 +81,14 @@ function wireCall(call) {
     audio.srcObject = remote;
     audio.play();
     setStatus('Connected');
+    // PeerJS often skips 'close' when the other tab vanishes; the RTC state still changes
+    const pc = call.peerConnection;
+    pc.addEventListener('connectionstatechange', () => {
+      const s = pc.connectionState;
+      if (s === 'connected') setStatus('Connected');
+      else if (s === 'disconnected') setStatus('Signal lost…');
+      else if (s === 'failed' || s === 'closed') { setStatus('Disconnected'); call.close(); }
+    });
   });
   call.on('close', () => setStatus('Disconnected'));
 }
@@ -103,6 +111,7 @@ function startPeer() {
   const guestOf = location.hash.slice(1);
   const peer = new Peer();
   let current = null;
+  addEventListener('pagehide', () => peer.destroy());
   peer.on('error', (err) => {
     setStatus(err.type === 'peer-unavailable'
       ? 'That channel is off the air'
